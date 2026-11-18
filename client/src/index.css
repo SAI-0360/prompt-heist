@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Page-wide look: dark background, light text. Everything else uses Tailwind classes. */
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+}
