@@ -1,5 +1,6 @@
 import express from "express";
 import chatRouter from "./routes/chat.js";
+import guessRouter from "./routes/guess.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,6 +18,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/chat", chatRouter);
+app.use("/api/guess", guessRouter);
 
 // Any route we didn't define: JSON 404 instead of Express's HTML page
 app.use((req, res) => {
