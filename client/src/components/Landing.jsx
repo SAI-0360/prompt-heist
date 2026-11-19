@@ -39,8 +39,10 @@ export default function Landing({ solved, onStart, onResetProgress }) {
         </button>
       )}
 
-      <p className="mt-8 text-xs text-slate-500">
-        No login. Your progress is saved only in this browser.
+      <p className="mt-8 max-w-md text-xs text-slate-500">
+        No login. Your progress is saved only in this browser. Your messages are sent to an AI
+        model (through Groq) to get the guard's replies; this game doesn't store them. Don't type
+        anything personal.
       </p>
     </main>
   );

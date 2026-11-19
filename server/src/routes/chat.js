@@ -2,6 +2,8 @@ import { Router } from "express";
 import { askModel } from "../llm.js";
 import { isValidLevel, getLevel, LEVEL_COUNT } from "../levels.js";
 import { leaksPassword, FILTER_BLOCK_MESSAGE } from "../defences/filter.js";
+import { reserveAiCalls } from "../daily-budget.js";
+import { reviewerAllows, REVIEWER_BLOCK_MESSAGE } from "../defences/reviewer.js";
 
 const router = Router();
 
@@ -28,15 +30,29 @@ router.post("/", async (req, res) => {
       .json({ error: `message must be at most ${MAX_MESSAGE_LENGTH} characters` });
   }
 
-  const { systemPrompt, password, outputFilter } = getLevel(level);
-  const reply = await askModel(systemPrompt, message.trim());
+  const { systemPrompt, password, outputFilter, aiReviewer } = getLevel(level);
 
-  // Level 4+: check the reply in code before the player sees it
+  // Daily cap for the whole app. Level 5 costs two AI calls (guard + reviewer).
+  // Checked AFTER validation, so invalid requests never use up the budget.
+  if (!reserveAiCalls(aiReviewer ? 2 : 1)) {
+    return res.status(503).json({
+      error: "The guard is off duty: the game's daily limit is used up. Try again tomorrow.",
+    });
+  }
+
+  const playerMessage = message.trim();
+  const reply = await askModel(systemPrompt, playerMessage);
+
+  // Level 4+: check the reply in code before the player sees it (cheap, instant)
   if (outputFilter && leaksPassword(reply, password)) {
     return res.json({ reply: FILTER_BLOCK_MESSAGE, blocked: true });
   }
 
-  // (Level 5's AI reviewer is added here in Step 4.)
+  // Level 5: a second AI reviews whatever the filter let through (costs a call,
+  // so it runs only after the free check has passed)
+  if (aiReviewer && !(await reviewerAllows({ playerMessage, reply, password }))) {
+    return res.json({ reply: REVIEWER_BLOCK_MESSAGE, blocked: true });
+  }
 
   res.json({ reply, blocked: false });
 });
